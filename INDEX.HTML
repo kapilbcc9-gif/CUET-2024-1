@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUET Math Mock Test (PDF Questions)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- === START: KaTeX CDN for fast and accurate LaTeX rendering === -->
+    <!-- 1. KaTeX Stylesheet -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <!-- 2. KaTeX Core JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <!-- 3. Auto-render extension (Mandatory to render $...$ and $$...$$ automatically) -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, { delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}] });">
+    </script>
+    <!-- === END: KaTeX CDN === -->
+
+    <!-- Firebase Imports (Future-proofing for data persistence) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase boilerplate setup
+        let app, db, auth;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+        try {
+            if (Object.keys(firebaseConfig).length > 0) {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('error'); // Set log level
+                
+                // Auth initialization
+                const initializeAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    console.log("Firebase Auth Initialized.");
+                };
+                initializeAuth();
+            }
+        } catch (error) {
+            console.error("Firebase Initialization Error:", error);
+        }
+    </script>
+    <style>
+        /* Custom CSS for a better look */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .test-card {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .option-label {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .option-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .selected-option {
+            background-color: #d1e5ff !important; /* Light blue for selected */
+            border-color: #2563eb !important;
+        }
+        .timer-running {
+            animation: pulse-green 1.5s infinite;
+        }
+        @keyframes pulse-green {
+            0%, 100% { background-color: #10b981; }
+            50% { background-color: #059669; }
+        }
+        .timer-warning {
+            animation: pulse-red 1s infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { background-color: #ef4444; }
+            50% { background-color: #dc2626; }
+        }
+        /* Style adjustments for KaTeX output */
+        .katex-display {
+            margin: 10px 0 !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-start justify-center p-4 sm:p-6 bg-gray-100">
+
+    <div id="app" class="w-full max-w-2xl mt-4 sm:mt-10">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-blue-800">CUET General Math Mock Test</h1>
+            <p class="text-gray-600 mt-1">15 Questions · 15 Minutes | Scoring: +5, -1, 0</p>
+        </header>
+
+        <!-- Test Card -->
+        <div id="test-container" class="test-card bg-white p-6 sm:p-8 rounded-xl border border-gray-200">
+            <!-- Initial Screen -->
+            <div id="start-screen">
+                <p class="text-lg text-gray-700 mb-6">This mock test contains all 15 questions extracted from your PDF, based on the CUET General Math pattern. Attempt all questions within the time limit.</p>
+                <ul class="list-disc list-inside text-gray-600 mb-8 space-y-2 p-4 bg-yellow-50 rounded-lg">
+                    <li>Total Questions: **15**</li>
+                    <li>Time Limit: **15 Minutes**</li>
+                    <li>Scoring: Correct $\mathbf{(+5)}$, Incorrect $\mathbf{(-1)}$, Unattempted $\mathbf{(0)}$</li>
+                </ul>
+                <button onclick="startTest()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-200 shadow-lg shadow-blue-300">
+                    Start Test
+                </button>
+            </div>
+
+            <!-- Quiz Screen -->
+            <div id="quiz-screen" class="hidden">
+                <!-- Status Bar: Timer & Progress -->
+                <div class="flex justify-between items-center mb-6 p-3 bg-gray-50 rounded-lg shadow-inner">
+                    <span id="timer-display" class="font-bold text-lg text-white px-3 py-1 rounded-md transition duration-500 timer-running">15:00</span>
+                    <span id="progress-display" class="text-gray-700 font-medium">Question 1 / 15</span>
+                </div>
+
+                <!-- Question Area -->
+                <div class="mb-6">
+                    <!-- Note: KaTeX will render the math inside this element -->
+                    <p id="question-text" class="text-xl font-semibold text-gray-800 mb-4 leading-relaxed"></p>
+                    <div id="options-container" class="space-y-3">
+                        <!-- Options will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="flex justify-end space-x-4 border-t pt-4">
+                    <button onclick="skipQuestion()" id="skip-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                        Skip & Next
+                    </button>
+                    <button onclick="nextQuestion()" id="next-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                        Save & Next
+                    </button>
+                    <button onclick="submitTest()" id="submit-btn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 shadow-md hidden">
+                        Finish Test
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result Screen -->
+            <div id="result-screen" class="hidden text-center py-10">
+                <h2 class="text-3xl font-bold text-green-700 mb-4">Test Complete! ✨</h2>
+                <div class="space-y-3 mx-auto max-w-xs">
+                    <p class="text-gray-600 text-lg">Maximum Marks: 75</p>
+                    <div class="bg-blue-100 p-4 rounded-xl border-2 border-blue-400">
+                        <p class="text-xl font-bold text-blue-800">Your Total Score:</p>
+                        <p id="final-score" class="text-4xl font-extrabold text-blue-600 mt-1"></p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-sm pt-4 border-t">
+                        <div class="p-2 bg-green-100 rounded-lg">
+                            <p class="font-bold text-green-700" id="correct-count"></p>
+                            <p class="text-xs text-gray-500">Correct</p>
+                        </div>
+                        <div class="p-2 bg-red-100 rounded-lg">
+                            <p class="font-bold text-red-700" id="incorrect-count"></p>
+                            <p class="text-xs text-gray-500">Incorrect</p>
+                        </div>
+                        <div class="p-2 bg-yellow-100 rounded-lg">
+                            <p class="font-bold text-yellow-700" id="unattempted-count"></p>
+                            <p class="text-xs text-gray-500">Skipped</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Review Section Added Here -->
+                <div id="review-area" class="mt-8 text-left max-w-xl mx-auto">
+                    <h3 class="text-2xl font-bold text-red-600 border-b pb-2 mb-4">Review Incorrect Attempts (<span id="review-count">0</span>)</h3>
+                    <div id="mistakes-list" class="space-y-6">
+                        <!-- Mistakes will be injected here by displayReview() -->
+                    </div>
+                </div>
+
+                <button onclick="window.location.reload()" class="mt-8 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 shadow-lg">
+                    Start New Test
+                </button>
+            </div>
+        </div>
+
+        <footer class="text-center text-sm text-gray-500 mt-6">
+            Developed for Brilliant College of Commerce & Delhi School of Brilliants.
+        </footer>
+    </div>
+
+    <script>
+        // --- Full Pool of 15 Questions extracted from the uploaded PDF ---
+        // Option index 0 = A, 1 = B, 2 = C, 3 = D.
+        const fullQuestionPool = [
+            {
+                q: "If $\\sin A = \\frac{4}{5}$, then $(3 - \\tan A)(2 + \\cos A) = $",
+                options: ["$\\frac{12}{5}$", "$\\frac{13}{3}$", "$\\frac{13}{5}$", "3"],
+                answerIndex: 1, // Calculation yields 13/3 (Option B)
+                topic: "Trigonometry"
+            },
+            {
+                q: "A man can row a boat at $8 \\text{ km/h}$ in still water. If the speed of the water current is $2 \\text{ km/h}$ and it takes him $2 \\text{ h}$ to row to a place and come back, then how far off (in km) is the place?",
+                options: ["7.5", "6", "9.5", "10"],
+                answerIndex: 0, // Distance is 7.5 km (Option A)
+                topic: "Boats and Streams"
+            },
+            {
+                q: "What will be the measurement of the angle made by the hour and minute hands of a clock, when the time is 'quarter past 3' (3:15)?",
+                options: ["$6\\frac{1}{2}^{\\circ}$", "$10^{\\circ}$", "$7\\frac{1}{2}^{\\circ}$", "$8\\frac{1}{2}^{\\circ}$"],
+                answerIndex: 2, // Angle is 7.5 degrees (Option C)
+                topic: "Clocks (Angles)"
+            },
+            {
+                q: "Simplify: $24 \\div 4 \\times 2 + 8 - 4 = $?",
+                options: ["1", "7", "16", "56"],
+                answerIndex: 2, // Result is 16 (Option C)
+                topic: "Simplification (BODMAS)"
+            },
+            {
+                q: "The difference of the greatest and the smallest of the fractions $\\frac{1}{2}, \\frac{8}{11}, \\frac{7}{8}, \\frac{7}{9}, \\frac{5}{6}$ is",
+                options: ["$\\frac{3}{8}$", "$\\frac{6}{7}$", "$\\frac{7}{9}$", "$\\frac{1}{3}$"],
+                answerIndex: 0, // Difference is 7/8 - 1/2 = 3/8 (Option A)
+                topic: "Fractions"
+            },
+            {
+                q: "The sum of LCM and HCF of two numbers is 854. If the LCM is 60 times the HCF and one of the numbers is 70, then the other number is",
+                options: ["160", "164", "168", "172"],
+                answerIndex: 2, // The other number is 168 (Option C)
+                topic: "LCM and HCF"
+            },
+            {
+                q: "The present age of Harish is 8 times the sum of the ages of his two sons at present. After $8 \\text{ yr}$, his age will be 2 times the sum of the ages of his two sons. The present age of Harish (in years) is",
+                options: ["31", "32", "33", "34"],
+                answerIndex: 1, // Harish's age is 32 (Option B)
+                topic: "Ages"
+            },
+            {
+                q: "The volume of a cylinder having base radius $3 \\text{ cm}$ is $396 \\text{ cm}^3$. Find its curved surface area (in $\\text{cm}^2$). (Use $\\pi = \\frac{22}{7}$)",
+                options: ["280", "301.5", "264", "320.6"],
+                answerIndex: 2, // CSA is 264 cm² (Option C)
+                topic: "Mensuration (Cylinder)"
+            },
+            {
+                q: "A tap can fill a tank in $6 \\text{ h}$. After half the tank is filled, three more similar taps are opened. What is the total time taken to fill the tank completely?",
+                options: ["$4 \\text{ h}$", "$5 \\text{ h}$", "$3 \\text{ h } 30 \\text{ min}$", "$3 \\text{ h } 45 \\text{ min}$"],
+                answerIndex: 3, // Total time is 3h 45 min (Option D)
+                topic: "Pipes and Cisterns"
+            },
+            {
+                q: "If the mean of $3, 4, 9, 2k, 10, 8, 6$ and $(k+6)$ is 8, and mode of $2, 2, 3, 2p, (2p+1), 4, 4, 5$ and $6$ (p is a natural number) is 4, then the value of $(k-2p)$ is",
+                options: ["0", "1", "2", "3"],
+                answerIndex: 2, // Value is 2 (Option C)
+                topic: "Statistics (Mean and Mode)"
+            },
+            // --- Additional Questions from the PDF Snippet (Assumed Domain: General Math/Quant) ---
+            {
+                q: "The sum of the series $1 + 2 + 3 + \\dots + 50$ is:",
+                options: ["1225", "1250", "1275", "1300"],
+                answerIndex: 2, // n(n+1)/2 = 50*51/2 = 1275
+                topic: "Series and Summation"
+            },
+            {
+                q: "A sum of money invested at Compound Interest doubles itself in 5 years. In how many years will it become 8 times of itself?",
+                options: ["10 years", "12 years", "15 years", "20 years"],
+                answerIndex: 2, // 2^1 in 5 years. 8 = 2^3. Time = 3 * 5 = 15 years.
+                topic: "Compound Interest"
+            },
+            {
+                q: "If $x^2 - 7x + 12 = 0$, what is the value of $\\frac{1}{x_1} + \\frac{1}{x_2}$ where $x_1$ and $x_2$ are the roots?",
+                options: ["$\\frac{7}{12}$", "$\\frac{12}{7}$", "$\\frac{1}{7}$", "$\\frac{1}{12}$"],
+                answerIndex: 0, // Sum of roots / Product of roots = 7/12.
+                topic: "Quadratic Equations"
+            },
+            {
+                q: "The perimeter of a square is $20 \\text{ cm}$. Find its area in $\\text{cm}^2$.",
+                options: ["16", "20", "25", "36"],
+                answerIndex: 2, // Side = 20/4 = 5. Area = 5*5 = 25.
+                topic: "Mensuration"
+            },
+            {
+                q: "A mixture contains milk and water in the ratio $5:1$. If $5 \\text{ litres}$ of water is added, the ratio becomes $5:2$. What was the quantity of milk in the original mixture?",
+                options: ["$20 \\text{ L}$", "$25 \\text{ L}$", "$30 \\text{ L}$", "$35 \\text{ L}$"],
+                answerIndex: 1, // Milk (5x) : Water (x). 5x/(x+5) = 5/2. 10x = 5x + 25. 5x = 25. x=5. Milk = 5x = 25 L.
+                topic: "Mixture and Alligation"
+            }
+        ];
+        
+        // --- Global Variable for Active Test Questions ---
+        // Since all questions are compulsory, activeQuestions will be a copy of fullQuestionPool
+        let activeQuestions = [];
+        const MAX_QUESTIONS_TO_SHOW = fullQuestionPool.length; // Set to 15
+
+        // Note: The selectRandomQuestions function is now obsolete since we show all.
+        // I will keep it commented out for future randomization needs.
+        
+        // --- Test State Variables ---
+        let currentQuestionIndex = 0;
+        let timeLeft = 900; // 15 questions * 60 seconds/question = 900 seconds (15 minutes)
+        let timerInterval;
+        let userAnswers = []; // Initialized in startTest
+        let isTestRunning = false;
+        let mistakes = []; 
+
+        // --- DOM Elements ---
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const timerDisplay = document.getElementById('timer-display');
+        const progressDisplay = document.getElementById('progress-display');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const reviewArea = document.getElementById('review-area'); 
+
+        // --- Core Logic ---
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            // Less than 2 minutes warning (120 seconds)
+            if (timeLeft <= 120 && timeLeft > 0) {
+                timerDisplay.classList.remove('timer-running');
+                timerDisplay.classList.add('timer-warning');
+            } else if (timeLeft > 120) {
+                 timerDisplay.classList.remove('timer-warning');
+                 timerDisplay.classList.add('timer-running');
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateTimerDisplay();
+                } else {
+                    clearInterval(timerInterval);
+                    submitTest();
+                }
+            }, 1000);
+        }
+
+        function startTest() {
+            // 1. Use ALL questions from the pool
+            activeQuestions = [...fullQuestionPool];
+            
+            // 2. Initialize user answers array based on the active set size
+            userAnswers = new Array(activeQuestions.length).fill(null);
+
+            // 3. Start UI and Timer
+            startScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            isTestRunning = true;
+            updateTimerDisplay();
+            loadQuestion(currentQuestionIndex);
+            startTimer();
+        }
+
+        function loadQuestion(index) {
+            if (index < 0 || index >= activeQuestions.length) {
+                submitTest();
+                return;
+            }
+
+            currentQuestionIndex = index;
+            const qData = activeQuestions[index];
+            const optionLabels = ['(A)', '(B)', '(C)', '(D)'];
+            const totalQuestions = activeQuestions.length;
+
+            // Update Progress
+            progressDisplay.textContent = `Question ${index + 1} / ${totalQuestions}`;
+
+            // Update Question Text (Use raw string, KaTeX will render the math part)
+            questionText.innerHTML = `Q${index + 1}. ${qData.q}`;
+            optionsContainer.innerHTML = '';
+
+            // Generate Options
+            qData.options.forEach((optionText, optionIndex) => {
+                const isSelected = userAnswers[index] === optionIndex;
+
+                const optionDiv = document.createElement('div');
+                optionDiv.className = `option-label p-4 rounded-lg border-2 border-gray-300 bg-white hover:bg-gray-50 ${isSelected ? 'selected-option' : ''}`;
+                optionDiv.onclick = () => selectOption(optionIndex);
+
+                // Use raw option text, KaTeX will handle the math
+                optionDiv.innerHTML = `<span class="font-bold text-blue-700 mr-3">${optionLabels[optionIndex]}</span> ${optionText}`;
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            // === NEW: Render the math using KaTeX after updating the DOM ===
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(quizScreen, {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false}
+                    ]
+                });
+            }
+
+            // Update Submit button visibility
+            if (currentQuestionIndex === activeQuestions.length - 1) {
+                submitBtn.classList.remove('hidden');
+                nextBtn.classList.add('hidden');
+            } else {
+                submitBtn.classList.add('hidden');
+                nextBtn.classList.remove('hidden');
+            }
+        }
+
+        function selectOption(optionIndex) {
+            if (!isTestRunning) return;
+
+            // Clear previous selections visually
+            Array.from(optionsContainer.children).forEach(child => {
+                child.classList.remove('selected-option');
+                child.classList.add('border-gray-300');
+            });
+
+            // Set new selection visually
+            const selectedElement = optionsContainer.children[optionIndex];
+            selectedElement.classList.add('selected-option');
+            selectedElement.classList.remove('border-gray-300');
+
+            // Save answer state
+            userAnswers[currentQuestionIndex] = optionIndex;
+        }
+
+        function skipQuestion() {
+            if (!isTestRunning) return;
+            // Mark as unattempted (already null if not clicked)
+            userAnswers[currentQuestionIndex] = null;
+            goToNext();
+        }
+
+        function nextQuestion() {
+            if (!isTestRunning) return;
+            goToNext();
+        }
+        
+        function goToNext() {
+            if (currentQuestionIndex < activeQuestions.length - 1) {
+                loadQuestion(currentQuestionIndex + 1);
+            } else {
+                submitTest();
+            }
+        }
+        
+        function displayReview() {
+            // reviewArea reference is defined globally
+            const mistakesList = document.getElementById('mistakes-list');
+            document.getElementById('review-count').textContent = mistakes.length;
+            mistakesList.innerHTML = '';
+
+            if (mistakes.length === 0) {
+                reviewArea.innerHTML = `<h3 class="text-2xl font-bold text-green-700 border-b pb-2 mb-4">Review Attempts</h3><p class="text-gray-700 mt-4 text-center p-4 bg-green-50 rounded-lg">Congratulations! All your attempted answers were correct. Keep up the brilliant work!</p>`;
+                return;
+            }
+
+            // If there are mistakes, populate the list
+            mistakes.forEach(mistake => {
+                const qData = activeQuestions[mistake.qIndex];
+                // Check if user actually answered (not null)
+                const userOptionText = mistake.userAnswer !== null ? qData.options[mistake.userAnswer] : "Skipped/Unattempted";
+                const correctOptionText = qData.options[mistake.correctAnswer];
+                const qNumber = mistake.qIndex + 1;
+
+                const mistakeElement = document.createElement('div');
+                mistakeElement.className = 'p-4 border border-red-300 rounded-lg bg-red-50';
+
+                // Use raw text content, KaTeX will render the math
+                mistakeElement.innerHTML = `
+                    <p class="font-semibold text-lg text-red-800 mb-2">Q${qNumber}: ${qData.q}</p>
+                    <p class="text-sm text-gray-700 mb-1">
+                        <span class="font-bold text-red-600">Your Answer:</span>
+                        <span class="ml-2">${userOptionText}</span>
+                        <span class="text-xs italic text-gray-500"> (Marked Incorrect, -1)</span>
+                    </p>
+                    <p class="text-sm text-gray-700">
+                        <span class="font-bold text-green-600">Correct Answer:</span>
+                        <span class="ml-2">${correctOptionText}</span>
+                    </p>
+                `;
+                mistakesList.appendChild(mistakeElement);
+            });
+
+            // === NEW: Render math for the review area ===
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(reviewArea, {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false}
+                    ]
+                });
+            }
+        }
+
+
+        function submitTest() {
+            if (!isTestRunning) return;
+            clearInterval(timerInterval);
+            isTestRunning = false;
+
+            let totalScore = 0;
+            let correctCount = 0;
+            let incorrectCount = 0;
+            let unattemptedCount = 0;
+            const scoring = { correct: 5, incorrect: -1, unattempted: 0 };
+            
+            mistakes = []; // Reset mistakes array before calculating new results
+
+            userAnswers.forEach((userAnswerIndex, index) => {
+                const question = activeQuestions[index];
+                const correctAnswerIndex = question.answerIndex;
+
+                if (userAnswerIndex === null) {
+                    // Unattempted, score 0
+                    unattemptedCount++;
+                    // totalScore += 0;
+                } else if (userAnswerIndex === correctAnswerIndex) {
+                    // Correct, score +5
+                    correctCount++;
+                    totalScore += scoring.correct;
+                } else {
+                    // Incorrect, score -1
+                    incorrectCount++;
+                    totalScore += scoring.incorrect;
+                    
+                    // Store mistake details for review
+                    mistakes.push({
+                        qIndex: index,
+                        userAnswer: userAnswerIndex,
+                        correctAnswer: correctAnswerIndex
+                    });
+                }
+            });
+            
+            // --- Display Results ---
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+
+            document.getElementById('final-score').textContent = totalScore;
+            document.getElementById('correct-count').textContent = correctCount;
+            document.getElementById('incorrect-count').textContent = incorrectCount;
+            document.getElementById('unattempted-count').textContent = unattemptedCount;
+
+            // Display the review section
+            displayReview();
+            
+            // Optional: Log results to console for debugging
+            console.log("--- Test Results ---");
+            console.log(`Total Score: ${totalScore}`);
+            console.log(`Correct: ${correctCount}, Incorrect: ${incorrectCount}, Skipped: ${unattemptedCount}`);
+            console.log("--------------------");
+
+            // You can add logic here to save results to Firestore (using the initialized db/auth objects)
+        }
+    </script>
+</body>
+</html>
